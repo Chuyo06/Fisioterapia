@@ -86,80 +86,88 @@ const currentMonthTotal = computed(() => {
       </button>
     </div>
     
-    <!-- Filtro de Mes -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-      <button @click="prevMonth" class="icon-btn"><ChevronLeft /></button>
-      <h2 style="font-size: 1.1rem; font-weight: 700; text-transform: capitalize;">{{ currentMonthName }} {{ currentYear }}</h2>
-      <button @click="nextMonth" class="icon-btn"><ChevronRight /></button>
-    </div>
+    <!-- Filtro de Mes y Contenido -->
+    <div class="finances-content">
+      <!-- Sección izquierda (Controles y Formulario) -->
+      <div class="finances-controls-section">
+        <!-- Selector de Mes -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <button type="button" @click="prevMonth" class="icon-btn"><ChevronLeft /></button>
+          <h2 style="font-size: 1.1rem; font-weight: 700; text-transform: capitalize;">{{ currentMonthName }} {{ currentYear }}</h2>
+          <button type="button" @click="nextMonth" class="icon-btn"><ChevronRight /></button>
+        </div>
 
-    <!-- Tarjeta de Total Mensual -->
-    <div class="card" style="background: linear-gradient(135deg, hsl(var(--color-primary)), hsl(var(--color-primary-dark))); color: white; border: none; margin-bottom: 1.5rem;">
-      <h3 style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.25rem;">Total Ingresos de {{ currentMonthName }}</h3>
-      <div style="font-size: 2.5rem; font-weight: 700; letter-spacing: -1px;">
-        ${{ currentMonthTotal.toFixed(2) }}
-      </div>
-    </div>
-    
-    <!-- Formulario de Pago (Ingreso Manual) -->
-    <div v-if="showForm" class="card" style="border: 2px solid var(--color-success);">
-      <h3 style="margin-bottom: 1rem; font-weight: 600;">Registrar Ingreso Manual</h3>
-      <form @submit.prevent="savePayment">
-        <div class="input-group">
-          <label class="input-label">Paciente *</label>
-          <select v-model="form.patient_id" class="input-field" required>
-            <option value="" disabled>Selecciona un paciente</option>
-            <option v-for="pat in patients" :key="pat.id" :value="pat.id">
-              {{ pat.first_name }} {{ pat.last_name }}
-            </option>
-          </select>
+        <!-- Tarjeta de Total Mensual -->
+        <div class="card" style="background: linear-gradient(135deg, hsl(var(--color-primary)), hsl(var(--color-primary-dark))); color: white; border: none; margin-bottom: 1.5rem;">
+          <h3 style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.25rem;">Total Ingresos de {{ currentMonthName }}</h3>
+          <div style="font-size: 2.5rem; font-weight: 700; letter-spacing: -1px;">
+            ${{ currentMonthTotal.toFixed(2) }}
+          </div>
         </div>
         
-        <div style="display: flex; gap: 1rem;">
-          <div class="input-group" style="flex: 1;">
-            <label class="input-label">Monto ($) *</label>
-            <input v-model="form.amount" type="number" step="0.01" min="0" class="input-field" required placeholder="0.00">
-          </div>
-          <div class="input-group" style="flex: 1;">
-            <label class="input-label">Método</label>
-            <select v-model="form.payment_method" class="input-field">
-              <option value="cash">Efectivo</option>
-              <option value="transfer">Transferencia</option>
-              <option value="card">Tarjeta</option>
-              <option value="other">Otro</option>
-            </select>
-          </div>
-        </div>
+        <!-- Formulario de Pago (Ingreso Manual) -->
+        <div v-if="showForm" class="card" style="border: 2px solid var(--color-success);">
+          <h3 style="margin-bottom: 1rem; font-weight: 600;">Registrar Ingreso Manual</h3>
+          <form @submit.prevent="savePayment">
+            <div class="input-group">
+              <label class="input-label">Paciente *</label>
+              <select v-model="form.patient_id" class="input-field" required>
+                <option value="" disabled>Selecciona un paciente</option>
+                <option v-for="pat in patients" :key="pat.id" :value="pat.id">
+                  {{ pat.first_name }} {{ pat.last_name }}
+                </option>
+              </select>
+            </div>
+            
+            <div style="display: flex; gap: 1rem;">
+              <div class="input-group" style="flex: 1;">
+                <label class="input-label">Monto ($) *</label>
+                <input v-model="form.amount" type="number" step="0.01" min="0" class="input-field" required placeholder="0.00">
+              </div>
+              <div class="input-group" style="flex: 1;">
+                <label class="input-label">Método</label>
+                <select v-model="form.payment_method" class="input-field">
+                  <option value="cash">Efectivo</option>
+                  <option value="transfer">Transferencia</option>
+                  <option value="card">Tarjeta</option>
+                  <option value="other">Otro</option>
+                </select>
+              </div>
+            </div>
 
-        <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
-          <button type="button" @click="showForm = false" class="input-field" style="flex: 1; text-align: center; cursor: pointer;">Cancelar</button>
-          <button type="submit" class="btn-primary" style="flex: 1; background-color: var(--color-success);" :disabled="patients.length === 0">Guardar</button>
+            <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+              <button type="button" @click="showForm = false" class="input-field" style="flex: 1; text-align: center; cursor: pointer;">Cancelar</button>
+              <button type="submit" class="btn-primary" style="flex: 1; background-color: var(--color-success);" :disabled="patients.length === 0">Guardar</button>
+            </div>
+          </form>
         </div>
-      </form>
-    </div>
+      </div>
 
-    <!-- Lista de Pagos -->
-    <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;">Detalle de Ingresos</h3>
-    <div v-if="!store.isLoaded" style="text-align: center; padding: 2rem;">
-      Cargando...
-    </div>
-    <div v-else-if="payments.length === 0 && !showForm" class="card">
-      <p style="color: var(--color-text-muted); text-align: center; padding: 2rem 0;">
-        No hay ingresos registrados en {{ currentMonthName }}.
-      </p>
-    </div>
-    <div v-else class="payments-list">
-      <div v-for="pay in payments" :key="pay.id" class="card" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; margin-bottom: 0.5rem;">
-        <div>
-          <div style="font-weight: 600;">
-            {{ pay.patients?.first_name }} {{ pay.patients?.last_name }}
-          </div>
-          <div style="color: var(--color-text-muted); font-size: 0.85rem; margin-top: 0.25rem;">
-            {{ formatDate(pay.payment_date) }} • {{ pay.payment_method === 'cash' ? 'Efectivo' : (pay.payment_method === 'transfer' ? 'Transferencia' : 'Tarjeta') }}
-          </div>
+      <!-- Sección derecha (Historial de Pagos) -->
+      <div class="finances-history-section">
+        <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;">Detalle de Ingresos</h3>
+        <div v-if="!store.isLoaded" style="text-align: center; padding: 2rem;">
+          Cargando...
         </div>
-        <div style="font-weight: 700; font-size: 1.25rem; color: var(--color-success);">
-          +${{ Number(pay.amount).toFixed(2) }}
+        <div v-else-if="payments.length === 0 && !showForm" class="card">
+          <p style="color: var(--color-text-muted); text-align: center; padding: 2rem 0;">
+            No hay ingresos registrados en {{ currentMonthName }}.
+          </p>
+        </div>
+        <div v-else class="payments-list">
+          <div v-for="pay in payments" :key="pay.id" class="card" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; margin-bottom: 0.5rem;">
+            <div>
+              <div style="font-weight: 600;">
+                {{ pay.patients?.first_name }} {{ pay.patients?.last_name }}
+              </div>
+              <div style="color: var(--color-text-muted); font-size: 0.85rem; margin-top: 0.25rem;">
+                {{ formatDate(pay.payment_date) }} • {{ pay.payment_method === 'cash' ? 'Efectivo' : (pay.payment_method === 'transfer' ? 'Transferencia' : 'Tarjeta') }}
+              </div>
+            </div>
+            <div style="font-weight: 700; font-size: 1.25rem; color: var(--color-success);">
+              +${{ Number(pay.amount).toFixed(2) }}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -169,4 +177,21 @@ const currentMonthTotal = computed(() => {
 <style scoped>
 .icon-btn { background: none; border: none; color: hsl(var(--color-text)); cursor: pointer; padding: 0.5rem; border-radius: 50%; transition: background-color var(--transition-fast); display: flex; align-items: center; justify-content: center; }
 .icon-btn:hover { background-color: hsl(var(--color-text) / 0.05); }
+
+@media (min-width: 900px) {
+  .finances-content {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+  }
+  .finances-controls-section {
+    flex: 0 0 400px;
+    position: sticky;
+    top: 5rem;
+  }
+  .finances-history-section {
+    flex: 1;
+    min-width: 0;
+  }
+}
 </style>

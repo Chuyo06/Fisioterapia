@@ -1,6 +1,6 @@
 <template>
   <div class="patients-view">
-    <h2 class="title" style="margin-bottom: 1rem;">Directorio de Pacientes</h2>
+    <h2 class="title" style="margin-bottom: 1.5rem; text-align: left;">Directorio de Pacientes</h2>
     
     <!-- Buscador -->
     <div class="search-container">
@@ -15,73 +15,50 @@
       </div>
     </div>
 
-    <!-- Total card -->
-    <div style="background: linear-gradient(135deg, hsl(var(--color-primary)), hsl(var(--color-primary-dark))); border-radius: var(--border-radius-md); padding: 1.5rem; color: white; display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; box-shadow: var(--shadow-md);">
-      <div>
-        <div style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; font-weight: 600;">Total Registrados</div>
-        <div style="font-size: 2.5rem; font-weight: 700; line-height: 1;">{{ filteredPatients.length }}</div>
-      </div>
-      <Users :size="48" style="opacity: 0.2;" />
+    <!-- Resumen Plano -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid hsl(var(--color-text)/0.06); font-weight: 600;">
+      <span style="color: var(--color-text-muted);">Total Registrados</span>
+      <span style="font-size: 1.2rem; font-weight: 700; color: hsl(var(--color-primary-dark));">{{ filteredPatients.length }} paciente(s)</span>
     </div>
 
-    <!-- Lista de pacientes -->
-    <div class="patients-list">
-      <div v-for="patient in filteredPatients" :key="patient.id" class="card patient-card" @click="togglePatient(patient.id)" style="cursor: pointer; transition: all 0.2s;">
-        
-        <!-- Header: Info del paciente -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem;" :style="{ marginBottom: expandedPatientId === patient.id ? '1rem' : '0' }">
-          <div>
-            <h3 style="font-size: 1.2rem; font-weight: 700; color: hsl(var(--color-primary-dark)); margin-bottom: 0.25rem;">
+    <!-- Lista de pacientes (Diseño Plano) -->
+    <div class="flat-section" style="padding: 0 1.5rem;">
+      <div v-if="filteredPatients.length === 0" style="text-align: center; padding: 3rem 1rem; color: var(--color-text-muted); font-style: italic;">
+        No se encontraron pacientes que coincidan con "{{ searchQuery }}".
+      </div>
+      <div v-else class="flat-list">
+        <div 
+          v-for="patient in filteredPatients" 
+          :key="patient.id" 
+          class="flat-row" 
+          @click="goToDetail(patient.id)"
+          style="cursor: pointer; padding: 1.25rem 0;"
+        >
+          <!-- Info Izquierda -->
+          <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <h3 style="font-size: 1.1rem; font-weight: 700; color: hsl(var(--color-text));">
               {{ patient.first_name }} {{ patient.last_name }}
             </h3>
-            <div v-if="patient.phone" style="display: flex; align-items: center; gap: 0.4rem; color: var(--color-text-muted); font-size: 0.85rem; font-weight: 500;">
-              <Phone :size="14" /> {{ patient.phone }}
-            </div>
-            <div v-else style="font-size: 0.8rem; color: var(--color-text-muted); opacity: 0.7; font-style: italic;">
-              Sin teléfono
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; font-size: 0.85rem; color: var(--color-text-muted); font-weight: 500;">
+              <span v-if="patient.phone" style="display: flex; align-items: center; gap: 0.25rem;">
+                <Phone :size="13" /> {{ patient.phone }}
+              </span>
+              <span v-else style="font-style: italic; opacity: 0.7;">Sin teléfono</span>
+              
+              <span style="display: flex; align-items: center; gap: 0.25rem;">
+                <CalendarDays :size="13" /> {{ patient.appointments.length }} cita(s)
+              </span>
             </div>
           </div>
           
-          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
+          <!-- Badges y Flecha Derecha -->
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
             <div v-if="patient.totalGenerated > 0" class="badge-count" style="background-color: hsl(var(--color-success)/0.1); color: hsl(var(--color-success)); border: 1px solid hsl(var(--color-success)/0.2);">
-              <DollarSign :size="14" style="display: inline; vertical-align: text-bottom; margin-right: 0.1rem;" />
-              {{ patient.totalGenerated }}
+              ${{ patient.totalGenerated }}
             </div>
-            <div class="badge-count">
-              <CalendarDays :size="14" style="display: inline; vertical-align: text-bottom; margin-right: 0.2rem;" />
-              {{ patient.appointments.length }} citas
-            </div>
-            <div v-if="patient.appointments.filter(a => a.status === 'cancelled').length > 0" class="badge-count" style="background-color: hsl(var(--color-danger)/0.1); color: hsl(var(--color-danger)); border: 1px solid hsl(var(--color-danger)/0.2);">
-              {{ patient.appointments.filter(a => a.status === 'cancelled').length }} Canceladas
-            </div>
+            <ChevronRight :size="18" style="color: var(--color-text-muted); opacity: 0.6;" />
           </div>
         </div>
-
-        <!-- Historial de Casos Clínicos -->
-        <div class="accordion-wrapper" :class="{ 'is-expanded': expandedPatientId === patient.id }" @click.stop>
-          <div class="accordion-inner">
-            <div class="history-section">
-              <h4 style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: hsl(var(--color-primary)); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
-                <FileText :size="16" /> Expediente / Notas
-              </h4>
-              
-              <div v-if="getNotes(patient).length === 0" style="font-size: 0.85rem; color: var(--color-text-muted); font-style: italic; background: hsl(var(--color-surface)); padding: 0.75rem; border-radius: 8px; border: 1px dashed hsl(var(--color-text)/0.1);">
-                No hay notas clínicas registradas para este paciente en sus citas pasadas.
-              </div>
-              
-              <div v-else class="notes-list">
-                <div v-for="(note, idx) in getNotes(patient)" :key="idx" class="note-item">
-                  <div class="note-date">{{ formatDate(note.date) }}</div>
-                  <div class="note-content">{{ note.text }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div v-if="filteredPatients.length === 0" style="text-align: center; padding: 2rem; color: var(--color-text-muted); background: hsl(var(--color-text)/0.03); border-radius: var(--border-radius-md);">
-        No se encontraron pacientes que coincidan con "{{ searchQuery }}".
       </div>
     </div>
   </div>
@@ -89,18 +66,15 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { Users, Phone, CalendarDays, FileText, Search, DollarSign } from '@lucide/vue'
+import { Phone, CalendarDays, Search, DollarSign, ChevronRight } from '@lucide/vue'
 import { store } from '../store'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const searchQuery = ref('')
-const expandedPatientId = ref(null)
 
-function togglePatient(id) {
-  if (expandedPatientId.value === id) {
-    expandedPatientId.value = null
-  } else {
-    expandedPatientId.value = id
-  }
+function goToDetail(id) {
+  router.push(`/patients/${id}`)
 }
 
 const patients = computed(() => {
@@ -125,21 +99,6 @@ const filteredPatients = computed(() => {
     return fullName.includes(q)
   })
 })
-
-// Extrae y ordena las notas de un paciente de sus citas
-function getNotes(patient) {
-  return patient.appointments
-    .filter(a => a.notes && a.notes.trim() !== '')
-    .map(a => ({
-      date: a.appointment_date,
-      text: a.notes
-    }))
-}
-
-function formatDate(isoString) {
-  const d = new Date(isoString)
-  return d.toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' })
-}
 </script>
 
 <style scoped>
@@ -161,8 +120,8 @@ function formatDate(isoString) {
 }
 
 .search-input {
-  padding: 1rem 1rem 1rem 2.8rem !important; /* Override underline style padding */
-  border: 2px solid transparent !important; /* Override underline style border */
+  padding: 1rem 1rem 1rem 2.8rem !important;
+  border: 2px solid transparent !important;
   border-radius: var(--border-radius-lg) !important;
   background-color: hsl(var(--color-surface)) !important;
   box-shadow: var(--shadow-sm);
@@ -174,11 +133,6 @@ function formatDate(isoString) {
   box-shadow: 0 4px 16px hsl(var(--color-primary)/0.15) !important;
 }
 
-.patient-card {
-  padding: 1.5rem;
-  border-left: 4px solid hsl(var(--color-primary));
-}
-
 .badge-count {
   background-color: hsl(var(--color-primary)/0.1);
   color: hsl(var(--color-primary-dark));
@@ -188,78 +142,5 @@ function formatDate(isoString) {
   font-weight: 700;
   text-transform: uppercase;
   white-space: nowrap;
-}
-
-.history-section {
-  background-color: hsl(var(--color-text)/0.03);
-  padding: 1rem;
-  border-radius: var(--border-radius-md);
-  margin-top: 1.5rem;
-  border: 1px solid hsl(var(--color-text)/0.05);
-}
-
-.notes-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-height: 320px;
-  overflow-y: auto;
-  padding-right: 0.5rem;
-}
-
-/* Custom Scrollbar for Notes List */
-.notes-list::-webkit-scrollbar {
-  width: 5px;
-}
-.notes-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-.notes-list::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--color-text) / 0.15);
-  border-radius: 4px;
-}
-.notes-list::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--color-text) / 0.3);
-}
-
-.note-item {
-  background-color: hsl(var(--color-surface));
-  padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid hsl(var(--color-text)/0.05);
-  box-shadow: var(--shadow-sm);
-}
-
-.note-date {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: hsl(var(--color-primary));
-  text-transform: uppercase;
-  margin-bottom: 0.5rem;
-  border-bottom: 1px solid hsl(var(--color-text)/0.1);
-  padding-bottom: 0.25rem;
-  display: inline-block;
-}
-
-.note-content {
-  font-size: 0.95rem;
-  color: hsl(var(--color-text));
-  line-height: 1.5;
-  white-space: pre-wrap; /* Respeta los saltos de línea del textarea */
-}
-
-/* Animación del Acordeón */
-.accordion-wrapper {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.accordion-wrapper.is-expanded {
-  grid-template-rows: 1fr;
-}
-
-.accordion-inner {
-  overflow: hidden;
 }
 </style>
