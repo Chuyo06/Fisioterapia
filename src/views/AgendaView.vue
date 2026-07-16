@@ -211,12 +211,14 @@ const isCancelling = ref(false)
 
 const form = ref({
   selectedPatientId: 'new',
+  date: '',
   first_name: '',
   last_name: '',
   phone: '',
   start_time: '09:00',
   end_time: '10:00',
-  notes: ''
+  notes: '',
+  location: 'Consultorio'
 })
 
 const editAppointmentForm = ref({
@@ -230,10 +232,10 @@ const paymentForm = ref({
   payment_method: 'cash'
 })
 
-// Time Options for selects
-const timeOptions = Array.from({ length: (21 - 7) * 4 }).map((_, i) => {
-  const hour = Math.floor(i / 4) + 7
-  const min = (i % 4) * 15
+// Time Options for selects (8am to 8pm, 30 min intervals)
+const timeOptions = Array.from({ length: 25 }).map((_, i) => {
+  const hour = Math.floor(i / 2) + 8
+  const min = (i % 2) * 30
   const timeStr = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`
   
   const d = new Date()
@@ -251,6 +253,7 @@ function clickGrid(day, hour) {
   
   form.value = {
     selectedPatientId: 'new',
+    date: getLocalDateString(clickedDate),
     first_name: '',
     last_name: '',
     phone: '',
@@ -269,6 +272,7 @@ function clickAddAppt() {
   selectedDate.value = new Date()
   form.value = {
     selectedPatientId: 'new',
+    date: getLocalDateString(selectedDate.value),
     first_name: '',
     last_name: '',
     phone: '',
@@ -348,7 +352,7 @@ async function saveAppointment() {
     return
   }
 
-  const dateString = getLocalDateString(selectedDate.value)
+  const dateString = form.value.date
   const startTotalMins = (startH * 60) + startM
   const endTotalMins = (endH * 60) + endM
 
@@ -386,15 +390,16 @@ async function saveAppointment() {
     store.patients.sort((a, b) => a.first_name.localeCompare(b.first_name))
   }
 
-  const datetimeString = `${dateString}T${form.value.start_time}:00`
-  const appointmentDate = new Date(datetimeString)
+  const [y, m, d] = form.value.date.split('-').map(Number)
+  const finalDate = new Date(y, m - 1, d, startH, startM, 0, 0)
 
   const { data: apptData, error: apptError } = await supabase
     .from('appointments')
     .insert([{
       patient_id: patientId,
-      appointment_date: appointmentDate.toISOString(),
+      appointment_date: finalDate.toISOString(),
       duration_minutes: duration,
+      location: form.value.location,
       notes: form.value.notes,
       status: 'scheduled'
     }])
@@ -509,6 +514,30 @@ async function cancelAppointment() {
   }
 }
 
+// Delete Appointment
+async function deleteAppointment() {
+  if (!confirm('¿Estás seguro de que deseas eliminar esta cita permanentemente? Esta acción no se puede deshacer.')) return
+  
+  isCancelling.value = true
+  try {
+    const { error } = await supabase
+      .from('appointments')
+      .delete()
+      .eq('id', selectedAppointment.value.id)
+
+    if (!error) {
+      const idx = store.appointments.findIndex(a => a.id === selectedAppointment.value.id)
+      if (idx !== -1) store.appointments.splice(idx, 1)
+      selectedAppointment.value = null
+      showToast("Cita eliminada permanentemente.")
+    } else {
+      alert("Error al eliminar la cita: " + error.message)
+    }
+  } finally {
+    isCancelling.value = false
+  }
+}
+
 function getDayLetter(date) {
   const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
   return days[date.getDay()]
@@ -521,14 +550,14 @@ function formatDisplayDate(dateStrOrObj) {
 </script>
 
 <template>
-  <div class="agenda-view" style="display: flex; flex-direction: column; height: 100%;">
+  <div class="agenda-view mobile-agenda-wrapper" style="display: flex; flex-direction: column; height: 100%;">
     <!-- Toast Messages -->
     <div v-if="toastMessage" class="toast-popup" style="position: fixed; top: 1.5rem; left: 50%; transform: translateX(-50%); background-color: hsl(var(--color-danger)); color: white; padding: 1rem 1.5rem; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); z-index: 2000; font-weight: 600; text-align: center; max-width: 90vw; border: 2px solid hsl(var(--color-danger)/0.5); animation: slideDown 0.3s ease-out;">
       {{ toastMessage }}
     </div>
 
     <!-- Cabecera Superior del Calendario -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
+    <div class="mobile-agenda-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
       <div style="display: flex; align-items: center; gap: 0.5rem;">
         <button @click="prevWeek" class="icon-btn" style="background: none; border: none; cursor: pointer; padding: 0.4rem; border-radius: 50%; color: hsl(var(--color-text));"><ChevronLeft /></button>
         <h2 style="font-size: 1.3rem; font-weight: 800; color: hsl(var(--color-primary-dark)); text-transform: capitalize; margin: 0;">{{ weekRangeText }}</h2>
@@ -542,17 +571,17 @@ function formatDisplayDate(dateStrOrObj) {
 
     <!-- Contenedor del Calendario Semanal Completo -->
     <div class="week-calendar-container">
-      <!-- Fila de Cabecera de Días -->
-      <div class="week-calendar-header">
-        <div class="time-label-spacer"></div>
-        <div v-for="day in weekDays" :key="day.getTime()" class="week-header-day" :class="{ 'is-today': isToday(day) }">
-          <span class="day-name">{{ getDayLetter(day) }}</span>
-          <span class="day-number">{{ day.getDate() }}</span>
-        </div>
-      </div>
-
       <!-- Área Deslizable -->
       <div class="week-calendar-scroll-area">
+        <!-- Fila de Cabecera de Días -->
+        <div class="week-calendar-header">
+          <div class="time-label-spacer"></div>
+          <div v-for="day in weekDays" :key="day.getTime()" class="week-header-day" :class="{ 'is-today': isToday(day) }">
+            <span class="day-name">{{ getDayLetter(day) }}</span>
+            <span class="day-number">{{ day.getDate() }}</span>
+          </div>
+        </div>
+
         <div class="week-calendar-grid">
           <!-- Columna Izquierda con las Horas -->
           <div class="time-labels-column">
@@ -621,7 +650,7 @@ function formatDisplayDate(dateStrOrObj) {
               <label class="input-label">Seleccionar Paciente</label>
               <CustomSelect
                 v-model="form.selectedPatientId"
-                :options="[{label: '+ Crear Nuevo Paciente', value: 'new'}, ...allPatients.map(p => ({label: `${p.first_name} ${p.last_name}`, value: p.id}))]"
+                :options="[{label: '+ Crear Nuevo Paciente', value: 'new'}, ...allPatients.map(p => ({label: `${p.first_name} ${p.last_name}${p.phone ? ' - ' + p.phone : ''}`, value: p.id}))]"
                 placeholder="Seleccionar Paciente..."
               />
             </div>
@@ -641,6 +670,14 @@ function formatDisplayDate(dateStrOrObj) {
                 <input v-model="form.phone" type="tel" class="input-field" placeholder="Teléfono (Opcional)">
               </div>
             </div>
+
+            <!-- Date and Time block -->
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+              <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                <label class="input-label">Fecha *</label>
+                <input type="date" v-model="form.date" class="input-field" required>
+              </div>
+            </div>
             
             <div style="display: flex; gap: 1rem; align-items: flex-end; margin-bottom: 1rem;">
               <div class="input-group" style="flex: 1; margin-bottom: 0;">
@@ -655,9 +692,21 @@ function formatDisplayDate(dateStrOrObj) {
 
             <div class="input-group" style="margin-bottom: 1.25rem;">
               <label class="input-label" style="display: flex; align-items: center; gap: 0.25rem;">
-                <FileText :size="14" /> Notas de Cita / Motivo
+                <FileText :size="14" /> Motivo de consulta
               </label>
               <textarea v-model="form.notes" class="input-field" rows="3" placeholder="Síntomas, parte a tratar, etc..." style="resize: vertical; border: 1px solid hsl(var(--color-text)/0.1); border-radius: 8px; padding: 0.5rem;"></textarea>
+            </div>
+
+            <div class="input-group" style="margin-bottom: 1.5rem;">
+              <label class="input-label" style="display: flex; align-items: center; gap: 0.25rem;">Lugar de la consulta</label>
+              <div style="display: flex; gap: 0.5rem;">
+                <button type="button" @click="form.location = 'Consultorio'" :style="{ flex: 1, padding: '0.6rem', borderRadius: '999px', border: form.location === 'Consultorio' ? '2px solid hsl(var(--color-primary))' : '1px solid hsl(var(--color-text)/0.2)', backgroundColor: form.location === 'Consultorio' ? 'hsl(var(--color-primary)/0.1)' : 'transparent', color: form.location === 'Consultorio' ? 'hsl(var(--color-primary-dark))' : 'hsl(var(--color-text-muted))', fontWeight: form.location === 'Consultorio' ? '700' : '500', cursor: 'pointer', transition: 'all 0.2s' }">
+                  Consultorio
+                </button>
+                <button type="button" @click="form.location = 'Domicilio'" :style="{ flex: 1, padding: '0.6rem', borderRadius: '999px', border: form.location === 'Domicilio' ? '2px solid hsl(var(--color-primary))' : '1px solid hsl(var(--color-text)/0.2)', backgroundColor: form.location === 'Domicilio' ? 'hsl(var(--color-primary)/0.1)' : 'transparent', color: form.location === 'Domicilio' ? 'hsl(var(--color-primary-dark))' : 'hsl(var(--color-text-muted))', fontWeight: form.location === 'Domicilio' ? '700' : '500', cursor: 'pointer', transition: 'all 0.2s' }">
+                  Domicilio
+                </button>
+              </div>
             </div>
 
             <div style="display: flex; gap: 1rem;">
@@ -767,6 +816,12 @@ function formatDisplayDate(dateStrOrObj) {
                 <Trash2 v-else :size="18" />
               </button>
             </div>
+          </div>
+          
+          <div v-else-if="selectedAppointment.status === 'cancelled' && !isEditingAppointment" style="margin-top: 1rem;">
+            <button @click="deleteAppointment" :disabled="isCancelling" class="btn-primary" style="width: 100%; background-color: hsl(var(--color-danger)); color: white; display: flex; justify-content: center; box-shadow: none;">
+              <Trash2 :size="16" style="margin-right: 0.25rem;" /> Eliminar Definitivamente
+            </button>
           </div>
 
         </div>

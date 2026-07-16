@@ -6,10 +6,20 @@ CREATE TABLE public.patients (
   last_name text NOT NULL,
   phone text,
   email text,
-  notes text
+  age integer,
+  gender text,
+  diagnosis text
 );
 
--- Tabla de Citas (Agenda)
+-- Tabla de Notas Clínicas (Expediente Médico de Evolución)
+CREATE TABLE public.clinical_notes (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  patient_id uuid REFERENCES public.patients(id) ON DELETE CASCADE NOT NULL,
+  date timestamp with time zone NOT NULL,
+  treatment_plan text,
+  observations text
+);
 CREATE TABLE public.appointments (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -17,6 +27,7 @@ CREATE TABLE public.appointments (
   appointment_date timestamp with time zone NOT NULL,
   duration_minutes integer DEFAULT 60 NOT NULL,
   status text DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'completed', 'cancelled')),
+  location text DEFAULT 'Consultorio',
   notes text
 );
 

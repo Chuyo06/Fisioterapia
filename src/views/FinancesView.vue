@@ -80,10 +80,6 @@ const currentMonthTotal = computed(() => {
         <h1 class="title" style="margin-bottom: 0;">Finanzas</h1>
         <p class="subtitle" style="margin-bottom: 0;">Control de ingresos</p>
       </div>
-      <button v-if="!showForm" @click="showForm = true" class="btn-primary" style="padding: 0.5rem 1rem; border-radius: 999px;">
-        <Plus :size="18" />
-        Ingreso
-      </button>
     </div>
     
     <!-- Filtro de Mes y Contenido -->

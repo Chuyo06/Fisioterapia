@@ -91,7 +91,8 @@ button {
 .app-container {
   display: flex;
   flex-direction: row;
-  min-height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   width: 100%;
   background-color: hsl(var(--color-bg));
 }
@@ -102,6 +103,7 @@ button {
   flex-direction: column;
   min-width: 0;
   position: relative;
+  margin-left: 80px;
 }
 
 .page-content {
@@ -220,6 +222,11 @@ textarea.input-field:focus {
 
 /* Sidebar */
 .sidebar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  height: 100vh;
   width: 260px;
   background-color: hsl(var(--color-surface));
   border-right: 1px solid hsl(var(--color-text) / 0.05);
@@ -412,6 +419,9 @@ textarea.input-field:focus {
   .app-container {
     flex-direction: column;
   }
+  .main-layout {
+    margin-left: 0;
+  }
   .mobile-header {
     display: flex;
   }
@@ -534,7 +544,7 @@ textarea.input-field:focus {
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 650px;
+  min-height: 0;
   background-color: hsl(var(--color-surface));
   border-radius: var(--border-radius-lg);
   border: 1px solid hsl(var(--color-text)/0.05);
@@ -547,12 +557,19 @@ textarea.input-field:focus {
   background-color: hsl(var(--color-surface));
   border-bottom: 1px solid hsl(var(--color-text)/0.08);
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 30;
 }
 
 .time-label-spacer {
   width: 60px;
   flex-shrink: 0;
   border-right: 1px solid hsl(var(--color-text)/0.08);
+  background-color: hsl(var(--color-surface));
+  position: sticky;
+  left: 0;
+  z-index: 40;
 }
 
 .week-header-day {
@@ -603,14 +620,16 @@ textarea.input-field:focus {
 /* Calendar Scroll Area */
 .week-calendar-scroll-area {
   flex: 1;
-  overflow-y: auto;
+  overflow: auto; /* Handles both x and y scroll now */
   position: relative;
+  min-height: 0;
 }
 
 /* Grid Layout */
 .week-calendar-grid {
   display: flex;
   position: relative;
+  padding-top: 12px;
 }
 
 .time-labels-column {
@@ -618,6 +637,9 @@ textarea.input-field:focus {
   flex-shrink: 0;
   border-right: 1px solid hsl(var(--color-text)/0.08);
   background-color: hsl(var(--color-surface));
+  position: sticky;
+  left: 0;
+  z-index: 20;
   user-select: none;
 }
 
@@ -764,13 +786,20 @@ textarea.input-field:focus {
 
 /* Mobile responsive for weekly calendar */
 @media (max-width: 768px) {
-  .week-calendar-scroll-area {
-    overflow-x: auto;
+  .week-calendar-container {
+    overflow: hidden;
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid hsl(var(--color-text)/0.05);
   }
-  .week-calendar-grid {
+  .week-calendar-grid, .week-calendar-header {
     min-width: 800px;
   }
-  .week-calendar-header {
-    min-width: 800px;
+  .mobile-agenda-wrapper {
+    height: calc(100dvh - 60px) !important;
+    padding: 0 !important;
+  }
+  .mobile-agenda-header {
+    padding: 1rem 1rem 0.5rem 1rem;
   }
 }

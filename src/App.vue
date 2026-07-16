@@ -1,35 +1,20 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { RouterView, RouterLink } from 'vue-router'
+import { ref, watch, onMounted } from 'vue'
+import { RouterView, RouterLink, useRoute } from 'vue-router'
 import { CalendarDays, Users, CircleDollarSign, Download, Home, Menu, ChevronLeft, ChevronRight, X } from '@lucide/vue'
 import { store } from './store'
 
-const deferredPrompt = ref(null)
 const isSidebarCollapsed = ref(false)
 const isMobileMenuOpen = ref(false)
+const route = useRoute()
+
+watch(() => route.path, () => {
+  closeMobileMenu()
+})
 
 onMounted(() => {
   store.fetchAllData()
-  
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault()
-    deferredPrompt.value = e
-  })
-
-  window.addEventListener('appinstalled', () => {
-    deferredPrompt.value = null
-  })
 })
-
-async function installApp() {
-  if (!deferredPrompt.value) return
-  deferredPrompt.value.prompt()
-  const { outcome } = await deferredPrompt.value.userChoice
-  if (outcome === 'accepted') {
-    deferredPrompt.value = null
-  }
-}
-
 function toggleSidebar() {
   isSidebarCollapsed.value = !isSidebarCollapsed.value
 }
@@ -40,6 +25,7 @@ function toggleMobileMenu() {
 
 function closeMobileMenu() {
   isMobileMenuOpen.value = false
+  isSidebarCollapsed.value = true
 }
 </script>
 
@@ -54,10 +40,7 @@ function closeMobileMenu() {
         <img src="/favicon.png" alt="Logo" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;" onerror="this.src='/favicon.svg'" />
         <span style="font-weight: 700; font-size: 0.95rem; color: hsl(var(--color-primary-dark));">Ana Sánchez</span>
       </div>
-      <button v-if="deferredPrompt" @click="installApp" class="icon-btn" style="padding: 0.5rem; margin-right: -0.5rem; background: none; border: none; color: hsl(var(--color-primary)); cursor: pointer;">
-        <Download :size="20" />
-      </button>
-      <div v-else style="width: 24px;"></div>
+      <div style="width: 24px;"></div>
     </header>
 
     <!-- Mobile Drawer Overlay -->
@@ -77,26 +60,26 @@ function closeMobileMenu() {
       </div>
 
       <ul class="sidebar-menu">
-        <li>
-          <RouterLink to="/" class="sidebar-item" @click="closeMobileMenu">
+        <li @click="closeMobileMenu">
+          <RouterLink to="/" class="sidebar-item">
             <Home :size="20" />
             <span class="sidebar-item-text">Inicio</span>
           </RouterLink>
         </li>
-        <li>
-          <RouterLink to="/agenda" class="sidebar-item" @click="closeMobileMenu">
+        <li @click="closeMobileMenu">
+          <RouterLink to="/agenda" class="sidebar-item">
             <CalendarDays :size="20" />
             <span class="sidebar-item-text">Agenda</span>
           </RouterLink>
         </li>
-        <li>
-          <RouterLink to="/patients" class="sidebar-item" @click="closeMobileMenu">
+        <li @click="closeMobileMenu">
+          <RouterLink to="/patients" class="sidebar-item">
             <Users :size="20" />
             <span class="sidebar-item-text">Pacientes</span>
           </RouterLink>
         </li>
-        <li>
-          <RouterLink to="/finances" class="sidebar-item" @click="closeMobileMenu">
+        <li @click="closeMobileMenu">
+          <RouterLink to="/finances" class="sidebar-item">
             <CircleDollarSign :size="20" />
             <span class="sidebar-item-text">Finanzas</span>
           </RouterLink>
@@ -104,9 +87,6 @@ function closeMobileMenu() {
       </ul>
 
       <div class="sidebar-footer">
-        <button v-if="deferredPrompt" @click="installApp" class="btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: 999px; margin-bottom: 0.5rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
-          <Download :size="14" /> <span v-if="!isSidebarCollapsed">Instalar App</span>
-        </button>
         <button @click="toggleSidebar" class="sidebar-toggle-btn">
           <ChevronLeft v-if="!isSidebarCollapsed" :size="20" />
           <ChevronRight v-else :size="20" />
